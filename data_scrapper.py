@@ -42,10 +42,11 @@ def extract_mda(text):
 #################################
 
 def get_fama_french_factors():
-    """Download daily Fama-French 3 factors"""
-    ff_url = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"
-    df = pd.read_csv(ff_url, skiprows=3, index_col=0, parse_dates=True)
+    "Fama French Factors Daily from: https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"
+    df = pd.read_csv('F-F_Research_Data_Factors_daily.csv', skiprows=3, index_col=0, parse_dates=True)
+    df = df.iloc[:-1]  # Removes the last row
     df.index = pd.to_datetime(df.index, format='%Y%m%d')
+    # Fama-French dataset reports percentage returns, convert back to decimal
     return df / 100
 
 def calculate_volatility(ticker, filing_date, ff_factors):
@@ -117,7 +118,7 @@ def process_year(year, nasdaq_tickers):
     for ticker in nasdaq_tickers:
         try:
             # Download 10-K filings
-            dl.get("10-K", ticker, after_date=f"{year}-01-01", before_date=f"{year}-12-31")
+            dl.get("10-K", ticker, after=f"{year}-01-01", before=f"{year}-12-31")
             
             # Process filings
             filings_dir = os.path.join("sec-edgar-filings", ticker, "10-K")

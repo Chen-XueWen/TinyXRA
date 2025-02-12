@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import datetime
+import json
 
 def get_sp500_companies():
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
@@ -50,8 +51,12 @@ def get_sp500_companies_by_year(year):
 
     # Get the current year companies as a starting point
     companies_set = set(current_companies["Symbol"])
-    
+    sp500_dict = {}
+    extra_companies = []
     for i in range(datetime.datetime.now().year-1, year-1, -1):
+        print(f"Processing for Year {i}")
+        added_cnt = 0
+        removed_cnt = 0
         changes_filtered = changes_sorted[changes_sorted["Date_Date"].dt.year == i]
         for _, row in changes_filtered.iterrows():
             added = row.get("Added_Ticker", "")
@@ -59,13 +64,22 @@ def get_sp500_companies_by_year(year):
             if pd.notna(removed) and removed:
                 removed = removed.strip()
                 companies_set.add(removed)
+                added_cnt += 1
                 print(f"Added {removed}")
             if pd.notna(added) and added:
                 added = added.strip()
-                companies_set.discard(added)
+                # Check if exist first
+                if added in companies_set:
+                    companies_set.discard(added)
+                else:
+                    extra_companies.append(added)
                 print(f"Removed {added}")
-    
-    return sorted(companies_set)
+                removed_cnt += 1
+        print(f"Added {added_cnt}, Removed {removed_cnt}")
+        print(f"Total Company {len(companies_set)}")
+        sp500_dict[i] = sorted(companies_set)
+    print(f"Extra companies not removed: {extra_companies}")
+    return sp500_dict
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -80,5 +94,6 @@ if __name__ == "__main__":
         print("Year cannot be in the future.")
     else:
         sp500_companies = get_sp500_companies_by_year(year)
-        print(f"S&P 500 companies in {year}:")
-        print(sp500_companies)
+        # Save to a JSON file
+        with open("sp500_companies.json", "w") as json_file:
+            json.dump(sp500_companies, json_file, indent=4)  # `indent=4` makes it human-readable
