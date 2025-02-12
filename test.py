@@ -9,6 +9,12 @@ from sec_edgar_downloader import Downloader
 # User-Agent: <Company Name> <Email Address>
 dl = Downloader("National University of Singapore", "xuewen@u.nus.edu")
 # Get all 10-K filings for Microsoft
-dl.get("10-K", "MSFT")
+ticker = "AAPL"
+
+years = range(2001, 2024, 1)
+
+for year in years:
+    dl.get("10-K", ticker, after=f"{year}-01-01", before=f"{year}-12-31")
+    print("Hello World")
 
 print('Hello World')
