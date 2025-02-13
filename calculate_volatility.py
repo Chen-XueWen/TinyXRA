@@ -9,24 +9,6 @@ import os
 import re
 import statsmodels.api as sm
 
-# Configuration
-YOUR_EMAIL = "xuewen@u.nus.edu"  # Required for SEC Edgar
-
-###########################
-# Step 1: Get MD&A Section
-###########################
-
-def extract_mda(text):
-    """Extract MD&A section from 10-K text"""
-    # Define regex pattern to extract ITEM 7 to ITEM 8
-    pattern = re.search(r"(ITEM\s7.*?MANAGEMENT'S DISCUSSION.*?OF OPERATIONS)(.*?)(ITEM\s8)", text, re.DOTALL | re.IGNORECASE)
-    
-    if pattern:
-        mda_content = pattern.group(2).strip()
-        return mda_content
-    else:
-        return "MD&A Section not found."
-
 #################################
 # Step 2: Post-Event Volatility
 #################################

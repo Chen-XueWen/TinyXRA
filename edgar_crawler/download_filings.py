@@ -24,7 +24,7 @@ from requests.exceptions import (
 from tqdm import tqdm
 from urllib3.util import Retry
 
-from logger import Logger
+from edgar_crawler.logger import Logger
 
 # Python version compatibility for HTML parser
 try:
@@ -36,7 +36,7 @@ except ImportError:  # Python 3.5+
 
 
 # Import constants from the project's __init__ file
-from __init__ import DATASET_DIR, LOGGING_DIR
+from edgar_crawler.__init__ import DATASET_DIR, LOGGING_DIR
 
 # Set urllib3 logging level to critical to reduce noise
 urllib3_log = logging.getLogger("urllib3")
@@ -51,7 +51,7 @@ LOGGER = Logger(
 LOGGER.info(f"Saving log to {os.path.join(LOGGING_DIR)}\n")
 
 
-def main():
+def main(config):
     """
     Orchestrates the entire flow of crawling and downloading filings from SEC EDGAR.
 
@@ -69,8 +69,7 @@ def main():
     """
 
     # Load the configuration file
-    with open("config.json") as fin:
-        config = json.load(fin)["download_filings"]
+    config = config["download_filings"]
 
     # Define the directories and filepaths
     raw_filings_folder = os.path.join(DATASET_DIR, config["raw_filings_folder"])

@@ -14,9 +14,9 @@ from bs4 import BeautifulSoup
 from pathos.pools import ProcessPool
 from tqdm import tqdm
 
-from __init__ import DATASET_DIR
-from item_lists import item_list_8k, item_list_8k_obsolete, item_list_10k, item_list_10q
-from logger import Logger
+from edgar_crawler.__init__ import DATASET_DIR
+from edgar_crawler.item_lists import item_list_8k, item_list_8k_obsolete, item_list_10k, item_list_10q
+from edgar_crawler.logger import Logger
 
 # Change the default recursion limit of 1000 to 30000
 sys.setrecursionlimit(30000)
@@ -1188,13 +1188,12 @@ class ExtractItems:
         return 1
 
 
-def main() -> None:
+def main(config) -> None:
     """
     Gets the list of supported (10K, 8K, 10Q) files and extracts all textual items/sections by calling the extract_items() function.
     """
 
-    with open("config.json") as fin:
-        config = json.load(fin)["extract_items"]
+    config = config["extract_items"]
 
     filings_metadata_filepath = os.path.join(
         DATASET_DIR, config["filings_metadata_file"]

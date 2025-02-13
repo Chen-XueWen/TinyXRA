@@ -2,7 +2,7 @@ import logging
 import os
 from time import gmtime, strftime
 
-from __init__ import LOGGING_DIR
+from edgar_crawler.__init__ import LOGGING_DIR
 
 
 class Logger:
