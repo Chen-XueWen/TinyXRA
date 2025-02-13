@@ -33,7 +33,7 @@ for ticker in os.listdir(BASE_DIR):
         if int(match.group(1)) > 50:
             continue 
         year = '20' + match.group(1)  # Convert '02' to '2002'
-        year_folder = os.path.join(DEST_DIR, f"{year}_10K")
+        year_folder = os.path.join(DEST_DIR, f"{year}")
         os.makedirs(year_folder, exist_ok=True)  # Create year folder if not exists
 
         # Source and destination file paths
@@ -43,7 +43,7 @@ for ticker in os.listdir(BASE_DIR):
         # Move and rename the file
         if os.path.exists(source_file):
             shutil.copy2(source_file, destination_file)
-            print(f"Moved {source_file} → {destination_file}")
+            print(f"Copy {source_file} → {destination_file}")
         else:
             print(f"File missing: {source_file}")
 

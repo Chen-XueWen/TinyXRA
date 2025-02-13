@@ -3,7 +3,6 @@ import numpy as np
 import requests
 import yfinance as yf
 from bs4 import BeautifulSoup
-from sec_edgar_downloader import Downloader
 import pandas_market_calendars as mcal
 from datetime import datetime, timedelta
 import os
@@ -18,24 +17,15 @@ YOUR_EMAIL = "xuewen@u.nus.edu"  # Required for SEC Edgar
 ###########################
 
 def extract_mda(text):
-    """Extract MD&A section from 10-K text (simplified example)"""
-    item7_pattern = re.compile(
-        r'ITEM\s*7\s*[\.\-]?\s*MANAGEMENT\'?S?\s*DISCUSSION\s*AND\s*ANALYSIS',
-        re.IGNORECASE | re.DOTALL
-    )
-    item8_pattern = re.compile(
-        r'ITEM\s*8\s*[\.\-]?\s*FINANCIAL STATEMENTS',
-        re.IGNORECASE | re.DOTALL
-    )
+    """Extract MD&A section from 10-K text"""
+    # Define regex pattern to extract ITEM 7 to ITEM 8
+    pattern = re.search(r"(ITEM\s7.*?MANAGEMENT'S DISCUSSION.*?OF OPERATIONS)(.*?)(ITEM\s8)", text, re.DOTALL | re.IGNORECASE)
     
-    start_match = item7_pattern.search(text)
-    end_match = item8_pattern.search(text)
-    
-    if start_match and end_match:
-        start = start_match.end()
-        end = end_match.start()
-        return text[start:end].strip()
-    return None
+    if pattern:
+        mda_content = pattern.group(2).strip()
+        return mda_content
+    else:
+        return "MD&A Section not found."
 
 #################################
 # Step 2: Post-Event Volatility
@@ -109,22 +99,32 @@ def calculate_volatility(ticker, filing_date, ff_factors):
 # Main Processing
 ####################
 
-def process_year(year, nasdaq_tickers):
+def process_year(year):
     """Process a single year"""
-    dl = Downloader("National University of Singapore", YOUR_EMAIL)
     ff_factors = get_fama_french_factors()
     results = []
+    filing_folder = os.path.join('sec-edgar-yearly', str(year))
     
-    for ticker in nasdaq_tickers:
-        try:
-            # Download 10-K filings
-            dl.get("10-K", ticker, after=f"{year}-01-01", before=f"{year}-12-31")
-            
+    for filing in os.listdir(filing_folder):
+        filing_path = os.path.join(filing_folder, filing)
+        with open(filing_path, 'r', encoding='utf-8', errors='replace') as f:
+            text = f.read()
+        # Extract filing date
+        filed_match = re.search(r'FILED AS OF DATE:\s*(\d+)', text)
+        if filed_match:
+            filing_date = datetime.strptime(filed_match.group(1), '%Y%m%d').date()
+        else:
+            continue
+        
+        # Extract MD&A
+        mda = extract_mda(text)
+        if not mda:
+            continue    
             # Process filings
             filings_dir = os.path.join("sec-edgar-filings", ticker, "10-K")
             for filing in os.listdir(filings_dir):
                 filing_path = os.path.join(filings_dir, filing, "full-submission.txt")
-                
+                '''
                 with open(filing_path, 'r', encoding='utf-8', errors='replace') as f:
                     text = f.read()
                     
@@ -151,6 +151,7 @@ def process_year(year, nasdaq_tickers):
         except Exception as e:
             print(f"Error processing {ticker}: {str(e)}")
             continue
+        '''
     
     # Save results
     if results:
@@ -158,9 +159,7 @@ def process_year(year, nasdaq_tickers):
 
 if __name__ == "__main__":
     # Example usage - you need to provide actual NASDAQ tickers for each year
-    nasdaq_tickers_2023 = ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META']  # Replace with actual list
-    
     # Process years (this will take significant time)
     for year in range(2001, 2025):
         print(f"Processing year {year}")
-        process_year(year, nasdaq_tickers_2023)
+        process_year(year)
