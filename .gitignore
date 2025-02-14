@@ -6,3 +6,4 @@ datasets/INDICES
 datasets/RAW_FILINGS
 datasets/FILINGS_METADATA
 edgar_logs
+__pycache__
