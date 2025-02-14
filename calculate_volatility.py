@@ -97,23 +97,29 @@ def process_year(year):
         ticker = cik2ticker[cik]
         company = data['company']
         mda = data['item_7']
+        mda_clean = mda.replace("\n", " ").replace("’", "'")
         filing_date = pd.Timestamp(data['filing_date'])
         volatility = calculate_volatility(ticker, filing_date, ff_factors)
         if volatility:
             results.append({
                 'CIK': cik,
                 'Company': company,
-                'MD&A': mda,
+                'MD&A': mda_clean,
                 'Volatility': volatility
             })
-            
+    
     # Save results
     if results:
-        pd.DataFrame(results).to_csv(f"10k_volatility_{year}.csv", index=False)
+        pd.DataFrame(results).to_json(f"./datasets/10k_volatility/{year}.json", 
+           orient="records", 
+           indent=4, 
+           force_ascii=False)
 
 if __name__ == "__main__":
     # Example usage - you need to provide actual NASDAQ tickers for each year
     # Process years (this will take significant time)
+    if not os.path.isdir('datasets/10k_volatility/'):
+        os.mkdir('datasets/10k_volatility/')
     for year in range(2024, 2020, -1):
         print(f"Processing year {year}")
         process_year(year)
