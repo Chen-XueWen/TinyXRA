@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
+from nltk.tokenize import sent_tokenize
 import pandas_market_calendars as mcal
 from datetime import datetime, timedelta
 import os
 import json
 import statsmodels.api as sm
-from risk_metrics import standard_deviation, sortino_ratio
+from tqdm import tqdm 
+from sec_cik_mapper import StockMapper
+from risk_metrics import calculate_standard_deviation, calculate_skewness, calculate_kurtosis, sortino_ratio
 
 def get_fama_french_factors():
     """Fama French Factors Daily from: https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"""
@@ -16,7 +19,7 @@ def get_fama_french_factors():
     # Fama-French dataset reports percentage returns, convert back to decimal
     return df / 100
 
-def calculate_volatility(ticker, filing_date, ff_factors, risk_measurement='std'):
+def calculate_volatility(ticker, filing_date, ff_factors):
     """Calculate post-event volatility"""
     # Get trading calendar
     nyse = mcal.get_calendar('NYSE')
@@ -35,17 +38,20 @@ def calculate_volatility(ticker, filing_date, ff_factors, risk_measurement='std'
     start_date = trading_days[5]  # 6th trading day
     end_date = trading_days[251]  # 252nd trading day
     
-    # Get stock data
-    stock_data = yf.download(
-        tickers=ticker,
-        start=start_date,
-        end=end_date + timedelta(days=1)  # Ensure end date is included
-    )
+    for tick in ticker:
+        stock_data = yf.download(
+            tickers=tick,
+            start=start_date,
+            end=end_date + timedelta(days=1),
+            progress=False) 
+        if stock_data.empty != False:
+            break # If there is stock data then take the one with stock data
+
     if len(stock_data) < 10:  # Minimum data check
         return None
     
     # Get returns
-    returns = stock_data['Close'].pct_change().dropna().rename(columns={ticker: 'Return'})
+    returns = stock_data['Close'].pct_change().dropna().rename(columns={tick: 'Return'})
     returns = returns.reset_index()
     returns['Date'] = pd.to_datetime(returns['Date'])
     
@@ -70,14 +76,12 @@ def calculate_volatility(ticker, filing_date, ff_factors, risk_measurement='std'
     y = merged['Excess Return']
     
     model = sm.OLS(y, X, missing='drop').fit()
-    if risk_measurement=='std':
-        risk_value = standard_deviation(model.resid)
-    elif risk_measurement=='sortino':
-        risk_value = sortino_ratio(model.resid)
-    else:
-        raise ValueError(f"Invalid risk_measurement: {risk_measurement}. Expected 'std' or 'sortino'.")
-        
-    return risk_value
+    std_risk_value = calculate_standard_deviation(model.resid)
+    skewness_risk_value = calculate_skewness(model.resid)
+    kurtosis_risk_value = calculate_kurtosis(model.resid)
+    sortino_risk_value = sortino_ratio(model.resid)
+
+    return (std_risk_value, skewness_risk_value, kurtosis_risk_value, sortino_risk_value)
 
 ####################
 # Main Processing
@@ -88,16 +92,25 @@ def process_year(year):
     ff_factors = get_fama_french_factors()
     results = []
     filing_folder = os.path.join('./datasets/EXTRACTED_FILINGS', str(year), '10-K')
-    cik2ticker = json.load(open('./cik2ticker.json'))
+    mapper = StockMapper() # for cik to ticker map
+    cik2ticker = mapper.cik_to_tickers
     
-    for filing in os.listdir(filing_folder):
+    for filing in tqdm(os.listdir(filing_folder), total=len(os.listdir(filing_folder)), desc=f"Processing {year} filings"):
         filing_path = os.path.join(filing_folder, filing)
         data = json.load(open(filing_path))
         cik = data['cik']
-        ticker = cik2ticker[cik]
         company = data['company']
         mda = data['item_7']
+        try:
+            ticker = list(cik2ticker[cik.zfill(10)])
+        except:
+            print(f"cik2ticker for company {company} not found")
+            continue
+
         mda_clean = mda.replace("\n", " ").replace("’", "'")
+        if len(sent_tokenize(mda_clean)) < 3:
+            print(f"Incomplete extracted MD&A for {company}")
+            continue
         filing_date = pd.Timestamp(data['filing_date'])
         volatility = calculate_volatility(ticker, filing_date, ff_factors)
         if volatility:
@@ -105,7 +118,10 @@ def process_year(year):
                 'CIK': cik,
                 'Company': company,
                 'MD&A': mda_clean,
-                'Volatility': volatility
+                'Std_value': volatility[0],
+                'Skewness_value': volatility[1],
+                'Kurtosis_value': volatility[2],
+                'Sortino_value': volatility[3] * 1e15 # Daily sortino value is too small, so multiply by 1e15 so that to_json will not round to 0.
             })
     
     # Save results
@@ -120,6 +136,6 @@ if __name__ == "__main__":
     # Process years (this will take significant time)
     if not os.path.isdir('datasets/10k_volatility/'):
         os.mkdir('datasets/10k_volatility/')
-    for year in range(2024, 2020, -1):
+    for year in range(2024, 2014, -1):
         print(f"Processing year {year}")
         process_year(year)

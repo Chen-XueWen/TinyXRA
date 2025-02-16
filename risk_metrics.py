@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import skew, kurtosis
 
 def downside_deviation(returns, mar=0.0):
     """
@@ -43,5 +44,13 @@ def sortino_ratio(returns, mar=0.0, rf=0.0):
     sortino = excess_return / downside_dev
     return sortino
 
-def standard_deviation(returns):
+def calculate_standard_deviation(returns):
     return np.sqrt(np.mean(returns**2))
+
+def calculate_skewness(returns):
+    """Calculate skewness of returns"""
+    return skew(returns, bias=False)
+
+def calculate_kurtosis(returns):
+    """Calculate excess kurtosis of returns"""
+    return kurtosis(returns, fisher=True, bias=False)  # Fisher=True returns excess kurtosis (normal dist. = 0)

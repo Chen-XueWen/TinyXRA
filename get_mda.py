@@ -1,6 +1,6 @@
 from edgar_crawler import download_filings, extract_items 
 
-years = range(2024, 2023, -1)
+years = range(2013, 2002, -1)
 #cik_tickers = ["AAPL", "MSFT"]
 cik_tickers = [] # Set empty list to download everything
 for year in years:
