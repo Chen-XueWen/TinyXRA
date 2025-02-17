@@ -14,6 +14,7 @@ pip install transformers==4.39.3
 pip install wandb==0.16.6
 pip install scipy==1.13.0
 pip install numpy==1.24.4
+pip install scikit-learn==1.6.1
 ```
 ### Datasets Generation Requirements
 ```bash
@@ -29,6 +30,7 @@ pip install cssutils==1.0.2
 pip install click==7.1
 pip install sec-cik-mapper==2.1.0
 pip install nltk==3.9.1
+pip install h5py==3.12.1
 ```
 
 
@@ -49,7 +51,11 @@ python calculate_volatility.py
 get_mda > calculate_volatility > label_data
 
 # To run model
+max_count > prepro > train
 
+Test Year 2024
+80th Percentile Sentence Count: 396.0
+80th Percentile Word Count: 44.0
 
 Reference for Edgar-Crawler:
 https://github.com/lefterisloukas/edgar-crawler

@@ -12,8 +12,13 @@ if not os.path.isdir('datasets/labelled/'):
 for year in tqdm(years, desc="Processing Years", unit="year"):
     print(f"Processing Year {year}")
     df = pd.read_json(f"datasets/10k_volatility/{year}.json")
-    # For nan sortino value, it means the stock does not have negative returns, therefore it is infinite (replace with some big numbers)
+
+   # Drop NaN values properly
+    df = df.dropna(subset=["Skewness_value", "Kurtosis_value"])
+
+    # For NaN Sortino values, replace them with 100 (infinite assumption)
     df["Sortino_value"] = df["Sortino_value"].fillna(100)
+
     # 0-30%, 30-70%, 70-100% labels=[0, 1, 2]  # Labels for the bins
     df['Std_label'] = pd.qcut(df['Std_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])
     df['Skewness_label'] = pd.qcut(df['Skewness_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])

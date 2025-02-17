@@ -8,4 +8,5 @@ datasets/FILINGS_METADATA
 datasets/10k_volatility
 datasets/labelled
 edgar_logs
+processed
 __pycache__
