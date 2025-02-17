@@ -45,6 +45,12 @@ python get_mda.py
 python calculate_volatility.py
 ```
 
+# To get datasets
+get_mda > calculate_volatility > label_data
+
+# To run model
+
+
 Reference for Edgar-Crawler:
 https://github.com/lefterisloukas/edgar-crawler
 

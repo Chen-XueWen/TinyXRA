@@ -13,7 +13,7 @@ from risk_metrics import calculate_standard_deviation, calculate_skewness, calcu
 
 def get_fama_french_factors():
     """Fama French Factors Daily from: https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"""
-    df = pd.read_csv('F-F_Research_Data_Factors_daily.csv', skiprows=3, index_col=0, parse_dates=True)
+    df = pd.read_csv('./datasets/F-F_Research_Data_Factors_daily.csv', skiprows=3, index_col=0, parse_dates=True)
     df = df.iloc[:-1]  # Removes the last row
     df.index = pd.to_datetime(df.index, format='%Y%m%d')
     # Fama-French dataset reports percentage returns, convert back to decimal
@@ -128,7 +128,8 @@ def process_year(year):
     if results:
         pd.DataFrame(results).to_json(f"./datasets/10k_volatility/{year}.json", 
            orient="records", 
-           indent=4, 
+           indent=4,
+           double_precision=15,
            force_ascii=False)
 
 if __name__ == "__main__":
@@ -136,6 +137,6 @@ if __name__ == "__main__":
     # Process years (this will take significant time)
     if not os.path.isdir('datasets/10k_volatility/'):
         os.mkdir('datasets/10k_volatility/')
-    for year in range(2024, 2014, -1):
+    for year in range(2024, 2023, -1):
         print(f"Processing year {year}")
         process_year(year)

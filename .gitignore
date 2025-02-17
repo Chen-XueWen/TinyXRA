@@ -6,5 +6,6 @@ datasets/INDICES
 datasets/RAW_FILINGS
 datasets/FILINGS_METADATA
 datasets/10k_volatility
+datasets/labelled
 edgar_logs
 __pycache__
