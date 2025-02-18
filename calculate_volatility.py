@@ -35,7 +35,8 @@ def calculate_volatility(ticker, filing_date, ff_factors):
     if len(trading_days) < 252:
         return None
     
-    start_date = trading_days[5]  # 6th trading day
+    #start_date = trading_days[6]  
+    start_date = trading_days[0] # 0th trading day, but if we follow tsai then it is 6th
     end_date = trading_days[251]  # 252nd trading day
     
     for tick in ticker:
@@ -137,6 +138,6 @@ if __name__ == "__main__":
     # Process years (this will take significant time)
     if not os.path.isdir('datasets/10k_volatility/'):
         os.mkdir('datasets/10k_volatility/')
-    for year in range(2024, 2023, -1):
+    for year in range(2024, 2002, -1):
         print(f"Processing year {year}")
         process_year(year)
