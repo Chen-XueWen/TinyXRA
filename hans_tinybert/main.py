@@ -12,8 +12,9 @@ from metric import metric
 from utils import collate_fn, load_from_hdf5, risk_metric_map
 
 class DocClassificationDataset(Dataset):
-    def __init__(self, docs, labels):
+    def __init__(self, docs, attn_masks, labels):
         self.docs = docs
+        self.attn_masks = attn_masks
         self.labels = labels
 
     def __len__(self):
@@ -21,8 +22,9 @@ class DocClassificationDataset(Dataset):
 
     def __getitem__(self, idx):
         doc = self.docs[idx]  # These are token indices
+        attn_mask = self.attn_masks[idx]
         label = self.labels[idx]
-        return doc, label
+        return doc, attn_mask, label
     
 class Trainer:
     def __init__(self, args, model, train_dataset, val_dataset):
@@ -34,7 +36,7 @@ class Trainer:
         self.best_val_f1 = 0
         
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        component = ['embedding_layer', 'classifier']
+        component = ['encoder', 'classifier']
         grouped_params = [
             {
                 'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay) and component[0] in n],
@@ -77,6 +79,7 @@ class Trainer:
             with autocast():
                 outputs, _, _ = self.model(
                     batch['input_ids'].to(self.args.device), 
+                    batch['attention_masks'].to(self.args.device)
                 )
                 loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
 
@@ -105,6 +108,7 @@ class Trainer:
                 with autocast():
                     outputs, _, _ = self.model(
                         batch['input_ids'].to(self.args.device), 
+                        batch['attention_masks'].to(self.args.device)
                     )
                     loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
                 total_loss += loss.item()
@@ -150,7 +154,7 @@ def main():
     # General Parameters
     parser.add_argument("--test_year", default="2024", type=int)
     parser.add_argument("--risk_metric", choices=["std", "skew", "kurt", "sortino"], default="std", type=str)
-    parser.add_argument("--model_name_or_path", default="glove6B300d", type=str)
+    parser.add_argument("--model_name_or_path", default="huawei-noah/TinyBERT_General_4L_312D", type=str)
     parser.add_argument("--gpu", default="cuda:3", type=str)
     parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--epochs", default=10, type=int)
@@ -184,18 +188,18 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name=args.model_name_or_path + f"_{args.risk_metric}",
+        name=args.model_name_or_path.replace("huawei-noah/", "") + f"_{args.risk_metric}",
         project=args.project + f"_{args.test_year}",
         notes="None",
         #mode="disabled",
     )
     wandb.config.update(args)
 
-    train_docs, train_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/train_preprocessed.h5")
-    test_docs, test_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
+    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/train_preprocessed.h5")
+    test_docs, test_attn_masks, test_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
 
-    train_dataset = DocClassificationDataset(train_docs, train_labels[:, risk_metric_map[args.risk_metric]])
-    test_dataset = DocClassificationDataset(test_docs, test_labels[:, risk_metric_map[args.risk_metric]])
+    train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels[:, risk_metric_map[args.risk_metric]])
+    test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels[:, risk_metric_map[args.risk_metric]])
     
     training_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, drop_last=True)
     testing_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)

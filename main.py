@@ -7,7 +7,6 @@ from transformers import get_linear_schedule_with_warmup
 from tqdm.auto import tqdm
 import wandb
 import argparse
-import pickle
 from model import HierarchicalNet
 from metric import metric
 from utils import collate_fn, load_from_hdf5, risk_metric_map
