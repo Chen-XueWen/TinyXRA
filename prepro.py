@@ -86,7 +86,7 @@ def process_data(data_dir, test_year, max_sentences, max_words, tokenizer, train
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Preprocess train and test CSV data for Hierarchical Attention Network."
+        description="Preprocess train and test data for Hierarchical Attention Network."
     )
     parser.add_argument(
         "--test_year",
@@ -141,7 +141,6 @@ def main():
                                                            tokenizer=tokenizer, 
                                                            training=False)
 
-    # Save the processed data as pickle files.
     save_to_hdf5(os.path.join(output_dir, "train_preprocessed.h5"), train_docs, train_attn_masks, train_labels)
     save_to_hdf5(os.path.join(output_dir, "test_preprocessed.h5"), test_docs, test_attn_masks, test_labels)
 

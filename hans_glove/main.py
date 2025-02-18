@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from torch.cuda.amp import autocast, GradScaler
 from transformers import get_linear_schedule_with_warmup
 
 from tqdm.auto import tqdm
@@ -10,12 +9,11 @@ import argparse
 import pickle
 from model import HierarchicalNet
 from metric import metric
-from utils import collate_fn, load_from_hdf5, risk_metric_map
+from utils import collate_fn, load_from_hdf5
 
 class DocClassificationDataset(Dataset):
-    def __init__(self, docs, attn_masks, labels):
+    def __init__(self, docs, labels):
         self.docs = docs
-        self.attn_masks = attn_masks
         self.labels = labels
 
     def __len__(self):
@@ -23,9 +21,8 @@ class DocClassificationDataset(Dataset):
 
     def __getitem__(self, idx):
         doc = self.docs[idx]  # These are token indices
-        attn_mask = self.attn_masks[idx]
         label = self.labels[idx]
-        return doc, attn_mask, label
+        return doc, label
     
 class Trainer:
     def __init__(self, args, model, train_dataset, val_dataset):
@@ -69,28 +66,17 @@ class Trainer:
         warmup_steps = int(total_steps * 0.1)  # 10% of total steps for warm-up
         self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=warmup_steps,
                                                          num_training_steps=total_steps)
-        self.scaler = GradScaler()
     
     def train_epoch(self, dataloader, epoch):
         self.model.train()
         total_loss = 0
         for batch in tqdm(dataloader, desc="Training"):
             self.optimizer.zero_grad()
-            # Use autocast for mixed precision
-            with autocast():
-                outputs, _, _ = self.model(
-                    batch['input_ids'].to(self.args.device), 
-                    batch['attention_masks'].to(self.args.device)
-                )
-                loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
-
-            self.scaler.scale(loss).backward()
-            self.scaler.unscale_(self.optimizer)
+            outputs, _, _ = self.model(batch['input_ids'].to(self.args.device))
+            loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+            loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
-
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-        
+            self.optimizer.step()
             self.model.zero_grad()
             self.scheduler.step()
             total_loss += loss.item()
@@ -106,12 +92,8 @@ class Trainer:
 
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Validation"):
-                with autocast():
-                    outputs, _, _ = self.model(
-                        batch['input_ids'].to(self.args.device), 
-                        batch['attention_masks'].to(self.args.device)
-                    )
-                    loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+                outputs, _, _ = self.model(batch['input_ids'].to(self.args.device))
+                loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
                 total_loss += loss.item()
                 all_preds.extend(outputs.cpu().numpy())
                 all_targets.extend(batch['targets'].cpu().numpy())
@@ -153,34 +135,54 @@ def main():
     parser = argparse.ArgumentParser()
 
     # General Parameters
-    parser.add_argument("--test_year", default="2024", type=int)
-    parser.add_argument("--risk_metric", choices=["std", "skew", "kurt", "sortino"], default="std", type=str)
-    parser.add_argument("--model_name_or_path", default="albert-base-v2", type=str)
+    parser.add_argument("--data_type", default="ag_news", type=str)
+    parser.add_argument("--model_name_or_path", default="bert-base-cased", type=str)
     parser.add_argument("--gpu", default="cuda:4", type=str)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--epochs", default=10, type=int)
 
     # Model Parameters
+    parser.add_argument('--model_type', type=str, choices=["HAN", "HOTN"], default="HOTN")
     parser.add_argument('--word_hidden_size', type=int, default=128)
     parser.add_argument('--sentence_hidden_size', type=int, default=128)
     parser.add_argument('--encoder_lr', type=float, default=1e-5)
     parser.add_argument('--classifier_lr', type=float, default=6e-5)
     parser.add_argument('--weight_decay', type=float, default=1e-5)
     parser.add_argument('--max_grad_norm', type=float, default=2.5)
+    parser.add_argument('--dropout', default=0.2, type=float)
+    parser.add_argument('--n_iters', default=10, type=int)
 
     # Others
     parser.add_argument("--model_save_path", type=str)
     parser.add_argument("--model_load_path", type=str)
-    parser.add_argument("--project", type=str, default="XRC")
+    parser.add_argument("--name", type=str, default="HOTN1-Fast")
+    parser.add_argument("--project", type=str, default="HOTN10")
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
+    
+    if args.data_type == "ag_news":
+        args.max_sentences = 2
+        args.max_words = 51
+        args.num_classes = 4
+    elif args.data_type == "dbpedia":
+        args.max_sentences = 3
+        args.max_words = 78
+        args.num_classes = 14
+    elif args.data_type == "yelp_review_full":
+        args.max_sentences = 12
+        args.max_words = 231
+        args.num_classes = 5
+    else:
+        print("Not Supported Dataset, Terminating Programme")
+        return None
+
 
     device = torch.device(args.gpu if torch.cuda.is_available() else "cpu")
     args.n_gpu = torch.cuda.device_count()
     args.device = device
     
-    args.model_save_path = f'./best_f1_{args.test_year}_{args.seed}.pth'
+    args.model_save_path = f'./best_f1_{args.data_type}_{args.seed}.pth'
     #args.model_load_path = f'./best_f1_{args.data_type}_{args.seed}.pth'
     
     seed = args.seed
@@ -189,18 +191,18 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name=args.model_name_or_path + f"_{args.risk_metric}",
-        project=args.project + f"_{args.test_year}",
+        name=args.name,
+        project=args.project + f"_{args.data_type}",
         notes="None",
         #mode="disabled",
     )
     wandb.config.update(args)
 
-    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"./processed/2024/{args.model_name_or_path}/train_preprocessed.h5")
-    test_docs, test_attn_masks, test_labels = load_from_hdf5(f"./processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
+    train_docs, train_labels = load_from_hdf5(f"../processed/GLOVE/{args.data_type}/train_preprocessed.h5")
+    test_docs, test_labels = load_from_hdf5(f"../processed/GLOVE/{args.data_type}/test_preprocessed.h5")
 
-    train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels[:, risk_metric_map[args.risk_metric]])
-    test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels[:, risk_metric_map[args.risk_metric]])
+    train_dataset = DocClassificationDataset(train_docs, train_labels)
+    test_dataset = DocClassificationDataset(test_docs, test_labels)
     
     training_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, drop_last=True)
     testing_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
