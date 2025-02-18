@@ -9,11 +9,12 @@ class SeqEncoder(nn.Module):
         super(SeqEncoder, self).__init__()
         self.args = args
         self.bert = AutoModel.from_pretrained(args.model_name_or_path)
-        
-        # Freeze all parameters
-        for param in self.bert.parameters():
-            param.requires_grad = False
-        
+
+        # Freeze embeddings first
+        self.bert.embeddings.word_embeddings.weight.requires_grad = False
+        self.bert.embeddings.position_embeddings.weight.requires_grad = False
+        self.bert.embeddings.token_type_embeddings.weight.requires_grad = False
+
         self.config = self.bert.config
 
     def forward(self, input_ids, attention_masks):

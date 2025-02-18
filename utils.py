@@ -1,17 +1,20 @@
+import numpy as np
 import torch
 import h5py
 
 
 def collate_fn(batch):
 
-    docs = [ele[0] for ele in batch]
-    labels = [ele[1] for ele in batch]
+    docs = np.array([ele[0] for ele in batch])
+    attention_masks = np.array([ele[1] for ele in batch])
+    labels = np.array([ele[2] for ele in batch])
 
-    # Convert to PyTorch tensors
-    docs_tensor = torch.tensor(docs, dtype=torch.long)  # Long for embedding lookup
+    docs_tensor = torch.tensor(docs, dtype=torch.long)
+    attention_masks_tensor = torch.tensor(attention_masks, dtype=torch.long)
     labels_tensor = torch.tensor(labels, dtype=torch.long)
-    
+
     output = {"input_ids": docs_tensor,
+              "attention_masks": attention_masks_tensor,
               "targets": labels_tensor,
               }
     
@@ -49,5 +52,6 @@ def load_from_hdf5(file_path):
     """
     with h5py.File(file_path, "r") as hf:
         docs = hf["docs"][:]
+        attn_masks = hf["attn_masks"][:]
         labels = hf["labels"][:]
-    return docs, labels
+    return docs, attn_masks, labels

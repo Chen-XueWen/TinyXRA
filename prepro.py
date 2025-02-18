@@ -33,17 +33,20 @@ def preprocess_text(text, max_sentences, max_words, tokenizer):
     # Tokenize the document into sentences.
     sentences = sent_tokenize(text)
     processed_sentences = []
-    for sent in sentences[:max_sentences]:
-        # Use the AutoTokenizer to encode the sentence.
-        encoding = tokenizer.encode_plus(
-            sent,
-            add_special_tokens=True,
-            max_length=max_words,
-            truncation=True,
-            padding='max_length'
-        )
-        token_ids = encoding['input_ids']
-        processed_sentences.append(token_ids)
+    for i, sent in enumerate(sentences[:max_sentences+3]): #First 3 sentences are usually the MD&A title
+        if i < 3:
+            continue
+        else:
+            # Use the AutoTokenizer to encode the sentence.
+            encoding = tokenizer.encode_plus(
+                sent,
+                add_special_tokens=True,
+                max_length=max_words,
+                truncation=True,
+                padding='max_length'
+            )
+            token_ids = encoding['input_ids']
+            processed_sentences.append(token_ids)
     # Pad the document if there are fewer than max_sentences.
     if len(processed_sentences) < max_sentences:
         pad_sentence = [tokenizer.pad_token_id] * max_words
@@ -98,14 +101,14 @@ def main():
     parser.add_argument(
         "--max_sentences",
         type=int,
-        default=400,
-        help="Maximum number of sentences per document (e.g., the 80th percentile sentence count - rounded up)."
+        default=200,
+        help="Maximum number of sentences per document (e.g., ~ Half the 80th percentile sentence count, assuming first half are more important)."
     )
     parser.add_argument(
         "--max_words",
         type=int,
-        default=45,
-        help="Maximum number of words per sentence (e.g., the 80th percentile word count - rounded up)."
+        default=30,
+        help="Maximum number of words per sentence (e.g., ~ 80th percentile word count)."
     )
     parser.add_argument(
         "--model_name",
