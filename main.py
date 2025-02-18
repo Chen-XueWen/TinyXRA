@@ -10,7 +10,7 @@ import argparse
 import pickle
 from model import HierarchicalNet
 from metric import metric
-from utils import collate_fn, load_from_hdf5
+from utils import collate_fn, load_from_hdf5, risk_metric_map
 
 class DocClassificationDataset(Dataset):
     def __init__(self, docs, attn_masks, labels):
@@ -107,7 +107,10 @@ class Trainer:
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Validation"):
                 with autocast():
-                    outputs, _, _ = self.model(batch['input_ids'].to(self.args.device))
+                    outputs, _, _ = self.model(
+                        batch['input_ids'].to(self.args.device), 
+                        batch['attention_masks'].to(self.args.device)
+                    )
                     loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
                 total_loss += loss.item()
                 all_preds.extend(outputs.cpu().numpy())
@@ -154,7 +157,7 @@ def main():
     parser.add_argument("--risk_metric", choices=["std", "skew", "kurt", "sortino"], default="std", type=str)
     parser.add_argument("--model_name_or_path", default="albert-base-v2", type=str)
     parser.add_argument("--gpu", default="cuda:4", type=str)
-    parser.add_argument("--batch_size", default=1, type=int)
+    parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--epochs", default=10, type=int)
 
     # Model Parameters
@@ -193,11 +196,11 @@ def main():
     )
     wandb.config.update(args)
 
-    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"./processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
+    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"./processed/2024/{args.model_name_or_path}/train_preprocessed.h5")
     test_docs, test_attn_masks, test_labels = load_from_hdf5(f"./processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
 
-    train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels)
-    test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels)
+    train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels[:, risk_metric_map[args.risk_metric]])
+    test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels[:, risk_metric_map[args.risk_metric]])
     
     training_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, drop_last=True)
     testing_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)

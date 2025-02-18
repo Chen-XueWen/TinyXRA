@@ -55,3 +55,10 @@ def load_from_hdf5(file_path):
         attn_masks = hf["attn_masks"][:]
         labels = hf["labels"][:]
     return docs, attn_masks, labels
+
+risk_metric_map = {
+    "std":0, 
+    "skew":1, 
+    "kurt":2, 
+    "sortino":3
+}
