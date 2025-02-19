@@ -9,7 +9,7 @@ import wandb
 import argparse
 from model import HierarchicalNet
 from metric import metric
-from utils import collate_fn, load_from_hdf5, risk_metric_map
+from utils import collate_fn, load_from_hdf5, get_triplets, risk_metric_map
 
 class DocClassificationDataset(Dataset):
     def __init__(self, docs, attn_masks, labels):
@@ -77,11 +77,22 @@ class Trainer:
             self.optimizer.zero_grad()
             # Use autocast for mixed precision
             with autocast():
-                outputs, _, _ = self.model(
+                outputs, _, _, document_embs = self.model(
                     batch['input_ids'].to(self.args.device), 
                     batch['attention_masks'].to(self.args.device)
                 )
-                loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+                # 1) Cross-entropy classification loss
+                ce_loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+
+                # 2) Triplet loss
+                anchor, positive, negative = get_triplets(document_embs, batch['targets'].to(self.args.device))
+
+                if anchor is not None:
+                    triplet_loss = F.triplet_margin_loss(anchor, positive, negative, margin=1.0, p=2)
+                    loss = 0.7 * ce_loss + 0.3 * triplet_loss
+                else:
+                    # In case no valid triplets
+                    loss = ce_loss
 
             self.scaler.scale(loss).backward()
             self.scaler.unscale_(self.optimizer)
@@ -106,11 +117,23 @@ class Trainer:
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Validation"):
                 with autocast():
-                    outputs, _, _ = self.model(
+                    outputs, _, _, document_embs = self.model(
                         batch['input_ids'].to(self.args.device), 
                         batch['attention_masks'].to(self.args.device)
                     )
-                    loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+                    # 1) Cross-entropy classification loss
+                    ce_loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
+
+                    # 2) Triplet loss
+                    anchor, positive, negative = get_triplets(document_embs, batch['targets'].to(self.args.device))
+
+                    if anchor is not None:
+                        triplet_loss = F.triplet_margin_loss(anchor, positive, negative, margin=1.0, p=2)
+                        loss = 0.7 * ce_loss + 0.3 * triplet_loss
+                    else:
+                        # In case no valid triplets
+                        loss = ce_loss
+
                 total_loss += loss.item()
                 all_preds.extend(outputs.cpu().numpy())
                 all_targets.extend(batch['targets'].cpu().numpy())
@@ -188,7 +211,7 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name=args.model_name_or_path.replace("huawei-noah/", "") + f"_{args.risk_metric}" + "_CLS",
+        name=args.model_name_or_path.replace("huawei-noah/", "") + f"_{args.risk_metric}" + "_CLS" + "_TLoss",
         project=args.project + f"_{args.test_year}",
         notes="None",
         #mode="disabled",

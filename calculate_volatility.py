@@ -138,6 +138,6 @@ if __name__ == "__main__":
     # Process years (this will take significant time)
     if not os.path.isdir('datasets/10k_volatility/'):
         os.mkdir('datasets/10k_volatility/')
-    for year in range(2024, 2002, -1):
+    for year in range(2012, 2002, -1):
         print(f"Processing year {year}")
         process_year(year)

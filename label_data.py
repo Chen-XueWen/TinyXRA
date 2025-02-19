@@ -3,7 +3,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-years = range(2024, 2002, -1)
+years = range(2024, 2012, -1)
 # Ensure the directory exists
 if not os.path.isdir('datasets/labelled/'):
     os.makedirs('datasets/labelled/', exist_ok=True)
