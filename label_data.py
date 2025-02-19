@@ -21,10 +21,9 @@ for year in tqdm(years, desc="Processing Years", unit="year"):
 
     # 0-30%, 30-70%, 70-100% labels=[0, 1, 2]  # Labels for the bins
     df['Std_label'] = pd.qcut(df['Std_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])
-    # Binary labeling for Skewness, Kurtosis, and Sortino
-    df['Skewness_label'] = (df['Skewness_value'] >= 0).astype(int)
-    df['Kurtosis_label'] = (df['Kurtosis_value'] >= 0).astype(int)
-    df['Sortino_label'] = (df['Sortino_value'] >= 0).astype(int)
+    df['Skewness_label'] = pd.qcut(df['Skewness_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])
+    df['Kurtosis_label'] = pd.qcut(df['Kurtosis_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])
+    df['Sortino_label'] = pd.qcut(df['Sortino_value'], q=[0, 0.3, 0.7, 1], labels=[0, 1, 2])
     
     df = df.drop(columns=['Std_value', 'Skewness_value', 'Kurtosis_value', 'Sortino_value'])
     df.to_json(f"./datasets/labelled/{year}.json", 

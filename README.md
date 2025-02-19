@@ -48,16 +48,26 @@ python calculate_volatility.py
 ```
 
 # To get datasets
-get_mda > calculate_volatility > label_data
+```bash
+python get_mda.py # to get all the 10k raw fillings and extract the md&a
+
+python calculate_volatility.py # To calculate post event volatility, better to do it 2 seperate times or else yfinance will block you
+
+python label_data.py # to create the 3 quartiles for the risks
+
+python max_count.py # to get the 80th percentile word and sentence max value
+```
 
 # To run model
-max_count > prepro > train
+```bash
+cd {chosen model}
+python prepro.py --test_year {chosen year}
+python main.py --test_year {chosen year}
+```
 
-Test Year 2024
-80th Percentile Sentence Count: 396.0
-80th Percentile Word Count: 44.0
+Model can only fit 350 sentences and 40 words which is approximately the 80th percentile (396 and 44 respectively at year 2024)
 
-Reference for Edgar-Crawler:
+*MD&A Crawler from Edgar-Crawler:
 https://github.com/lefterisloukas/edgar-crawler
 
 

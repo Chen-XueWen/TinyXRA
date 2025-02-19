@@ -81,10 +81,7 @@ class Trainer:
                     batch['input_ids'].to(self.args.device), 
                     batch['attention_masks'].to(self.args.device)
                 )
-                # 1) Cross-entropy classification loss
                 ce_loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
-
-                # 2) Triplet loss
                 anchor, positive, negative = get_triplets(document_embs, batch['targets'].to(self.args.device))
 
                 if anchor is not None:
@@ -121,10 +118,7 @@ class Trainer:
                         batch['input_ids'].to(self.args.device), 
                         batch['attention_masks'].to(self.args.device)
                     )
-                    # 1) Cross-entropy classification loss
                     ce_loss = F.cross_entropy(outputs, batch['targets'].to(self.args.device))
-
-                    # 2) Triplet loss
                     anchor, positive, negative = get_triplets(document_embs, batch['targets'].to(self.args.device))
 
                     if anchor is not None:
@@ -138,21 +132,23 @@ class Trainer:
                 all_preds.extend(outputs.cpu().numpy())
                 all_targets.extend(batch['targets'].cpu().numpy())
 
-        acc, f1_macro, _ = metric(all_preds, all_targets)
+        acc, f1_macro, _, spearman_rho, kendall_tau = metric(all_preds, all_targets)
         avg_loss = total_loss / len(dataloader)
 
-        return avg_loss, acc, f1_macro
+        return avg_loss, acc, f1_macro, spearman_rho, kendall_tau
 
     def train(self):
         for epoch in range(self.args.epochs):
             train_dataloader = self.train_dataset
             val_dataloader = self.val_dataset
             avg_train_loss = self.train_epoch(train_dataloader, epoch)
-            avg_val_loss, val_acc, val_f1_macro = self.eval_epoch(val_dataloader)
+            avg_val_loss, val_acc, val_f1_macro, val_spearman_rho, val_kendall_tau = self.eval_epoch(val_dataloader)
             wandb.log({"train_loss": avg_train_loss, 
                        "val_loss": avg_val_loss,
                        "val_acc": val_acc,
                        "val_f1_macro": val_f1_macro,
+                       "val_spearman_rho": val_spearman_rho,
+                       "val_kendall_tau": val_kendall_tau,
                        "epoch": epoch})
 
             print(f"Epoch {epoch + 1}: Training Loss {avg_train_loss}, Validation Loss {avg_val_loss}")
@@ -165,10 +161,13 @@ class Trainer:
 
     def evaluate(self):
         val_dataloader = self.val_dataset
-        avg_val_loss, eval_scores, num_metric_scores, overlap_metric_scores = self.eval_epoch(val_dataloader)
-        print(f"Validation Loss {avg_val_loss}")
-        print(f"Val precision: {eval_scores['precision']}, Val recall: {eval_scores['recall']}, Val f1: {eval_scores['f1']}")
-            
+        avg_val_loss, val_acc, val_f1_macro, val_spearman_rho, val_kendall_tau = self.eval_epoch(val_dataloader)
+        
+        print(f"Validation Loss: {avg_val_loss}")
+        print(f"Validation Accuracy: {val_acc}")
+        print(f"Validation F1 Macro: {val_f1_macro}")
+        print(f"Validation Spearman's Rho: {val_spearman_rho}")
+        print(f"Validation Kendall's Tau: {val_kendall_tau}")
 
 def main():
 
@@ -180,7 +179,7 @@ def main():
     parser.add_argument("--model_name_or_path", default="huawei-noah/TinyBERT_General_4L_312D", type=str)
     parser.add_argument("--gpu", default="cuda:3", type=str)
     parser.add_argument("--batch_size", default=8, type=int)
-    parser.add_argument("--epochs", default=10, type=int)
+    parser.add_argument("--epochs", default=30, type=int)
 
     # Model Parameters
     parser.add_argument('--word_hidden_size', type=int, default=128)
@@ -211,15 +210,15 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name=args.model_name_or_path.replace("huawei-noah/", "") + f"_{args.risk_metric}" + "_CLS" + "_TLoss",
-        project=args.project + f"_{args.test_year}",
-        notes="None",
+        name="TinyBERTTL" + f"_{args.test_year}" + f"_S{args.seed}",
+        project=args.project + f"_{args.risk_metric}",
+        notes="TinyBERT using CLS and Triplet Loss",
         #mode="disabled",
     )
     wandb.config.update(args)
 
-    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/train_preprocessed.h5")
-    test_docs, test_attn_masks, test_labels = load_from_hdf5(f"../processed/2024/{args.model_name_or_path}/test_preprocessed.h5")
+    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../processed/{args.test_year}/{args.model_name_or_path}/train_preprocessed.h5")
+    test_docs, test_attn_masks, test_labels = load_from_hdf5(f"../processed/{args.test_year}/{args.model_name_or_path}/test_preprocessed.h5")
 
     train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels[:, risk_metric_map[args.risk_metric]])
     test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels[:, risk_metric_map[args.risk_metric]])
