@@ -124,13 +124,13 @@ def main():
     parser.add_argument(
         "--max_sentences",
         type=int,
-        default=200,
-        help="Maximum number of sentences per document (e.g., ~ Half the 80th percentile sentence count, assuming first half are more important)."
+        default=350,
+        help="Maximum number of sentences per document (e.g., ~ 80th percentile sentence count)."
     )
     parser.add_argument(
         "--max_words",
         type=int,
-        default=30,
+        default=40,
         help="Maximum number of words per sentence (e.g., ~ 80th percentile word count)."
     )
     parser.add_argument(
@@ -139,9 +139,9 @@ def main():
         default="glove6B300d",
         help="Model name for AutoTokenizer (default: albert-base-v2)."
     )
-    
     args = parser.parse_args()
     output_dir = f"../processed/{args.test_year}/{args.model_name}"
+
     # Check if output_dir exists, else create it
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)

@@ -14,7 +14,7 @@ class HierarchicalNet(nn.Module):
         self.classifier = HierarchicalAttentionNetworks(word_hidden_size=args.word_hidden_size,
                                                             sentence_hidden_size=args.sentence_hidden_size,
                                                             embedding_size=300,
-                                                            num_classes=3)
+                                                            num_classes=1) # Only output the ranking score
     def forward(self, input_ids):
         
         last_hidden_state = self.embedding_layer(input_ids)
