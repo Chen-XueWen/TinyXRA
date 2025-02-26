@@ -1,6 +1,7 @@
 sec-edgar-filings
 sec-edgar-yearly
 edgar-crawler-main/__pycache__
+datasets
 datasets/EXTRACTED_FILINGS
 datasets/INDICES
 datasets/RAW_FILINGS
