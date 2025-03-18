@@ -70,7 +70,9 @@ Model can only fit 350 sentences and 40 words which is approximately the 80th pe
 *MD&A Crawler from Edgar-Crawler:
 https://github.com/lefterisloukas/edgar-crawler
 
-
+# Additional Library to run FinGPT
+pip install accelerate==1.4.0 \
+pip install peft==0.14.0
 # For my reference
 
 The line of code np.sqrt(np.mean(model.resid**2)) calculates the standard deviation of the residuals from the regression of excess returns on the Fama-French factors. This standard deviation represents the idiosyncratic volatility of the stock's returns, which is the portion of volatility not explained by the market risk premium, size effect, and value effect as modeled by the Fama-French factors.

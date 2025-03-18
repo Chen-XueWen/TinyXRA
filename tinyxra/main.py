@@ -249,7 +249,7 @@ def main():
         name="TinyBERTTRL" + f"_{args.test_year}" + f"_S{args.seed}",
         project=args.project + f"_{args.risk_metric}",
         notes="TinyBERT using CLS and Triplet Ranking Loss",
-        #mode="disabled",
+        mode="disabled",
     )
     wandb.config.update(args)
 
