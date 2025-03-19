@@ -2,28 +2,80 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch.cuda.amp import autocast, GradScaler
+from torch.utils.data.sampler import Sampler
 from transformers import get_linear_schedule_with_warmup
 
 from tqdm.auto import tqdm
 import wandb
+import random
 import argparse
 from model import HierarchicalNet
 from metric import metric
 from utils import collate_fn, load_from_hdf5, risk_metric_map, pairwise_ranking_loss
 
 class DocClassificationDataset(Dataset):
-    def __init__(self, docs, labels):
+    def __init__(self, docs, attn_masks, labels):
         self.docs = docs
+        self.attn_masks = attn_masks
         self.labels = labels
 
     def __len__(self):
         return len(self.docs)
 
     def __getitem__(self, idx):
-        doc = self.docs[idx]  # These are token indices
+        doc = self.docs[idx]
+        attn_mask = self.attn_masks[idx]
         label = self.labels[idx]
-        return doc, label
-    
+        return doc, attn_mask, label
+
+class StratifiedBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size):
+        """
+        Ensures each batch contains at least 1 sample from each risk level (0,1,2).
+        The remaining slots are randomly filled.
+        """
+        self.dataset = dataset
+        self.batch_size = batch_size
+
+        # Store indices per class
+        self.indices_per_class = {
+            0: [i for i, label in enumerate(dataset.labels) if label == 0],  # Low risk
+            1: [i for i, label in enumerate(dataset.labels) if label == 1],  # Medium risk
+            2: [i for i, label in enumerate(dataset.labels) if label == 2],  # High risk
+        }
+
+        # All dataset indices for random selection
+        self.all_indices = list(range(len(dataset)))
+
+    def __iter__(self):
+        # Shuffle each class separately at the start of every epoch
+        for key in self.indices_per_class:
+            random.shuffle(self.indices_per_class[key])
+        
+        random.shuffle(self.all_indices)
+
+        num_batches = len(self.all_indices) // self.batch_size
+
+        for _ in range(num_batches):
+            batch = []
+
+            # Ensure at least 1 sample from each class (if available)
+            for key in self.indices_per_class:
+                if self.indices_per_class[key]:  # Ensure we have samples
+                    batch.append(random.choice(self.indices_per_class[key]))
+
+            # Fill the remaining batch size with random samples (without removal)
+            while len(batch) < self.batch_size:
+                batch.append(random.choice(self.all_indices))
+
+            yield batch
+
+    def __len__(self):
+        """
+        Returns the total number of batches.
+        """
+        return len(self.all_indices) // self.batch_size
+
 class Trainer:
     def __init__(self, args, model, train_dataset, val_dataset):
         self.args = args
@@ -34,7 +86,7 @@ class Trainer:
         self.best_val_f1 = 0
         
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        component = ['embedding_layer', 'classifier']
+        component = ['encoder', 'classifier']
         grouped_params = [
             {
                 'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay) and component[0] in n],
@@ -75,8 +127,9 @@ class Trainer:
             self.optimizer.zero_grad()
             # Use autocast for mixed precision
             with autocast():
-                outputs, _, _ = self.model(
+                outputs, _, _, document_embs = self.model(
                     batch['input_ids'].to(self.args.device), 
+                    batch['attention_masks'].to(self.args.device)
                 )
                 # Compute pairwise ranking loss
                 loss = pairwise_ranking_loss(outputs, batch['targets'].to(self.args.device))
@@ -104,8 +157,9 @@ class Trainer:
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Validation"):
                 with autocast():
-                    outputs, _, _ = self.model(
+                    outputs, _, _, document_embs = self.model(
                         batch['input_ids'].to(self.args.device), 
+                        batch['attention_masks'].to(self.args.device)
                     )
                     # Compute pairwise ranking loss
                     loss = pairwise_ranking_loss(outputs, batch['targets'].to(self.args.device))
@@ -156,9 +210,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     # General Parameters
-    parser.add_argument("--test_year", default="2024", type=int)
+    #parser.add_argument("--test_year", default="2024", type=int)
+    parser.add_argument("--test_year", default="2018", type=int)
     parser.add_argument("--risk_metric", choices=["std", "skew", "kurt", "sortino"], default="std", type=str)
-    parser.add_argument("--model_name_or_path", default="glove6B300d", type=str)
+    parser.add_argument("--model_name_or_path", default="huawei-noah/TinyBERT_General_4L_312D", type=str)
     parser.add_argument("--gpu", default="cuda:7", type=str)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--epochs", default=30, type=int)
@@ -175,7 +230,8 @@ def main():
     parser.add_argument("--model_save_path", type=str)
     parser.add_argument("--model_load_path", type=str)
     parser.add_argument("--project", type=str, default="XRC_Ablation")
-    parser.add_argument("--seed", type=int, default=42)
+    #parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=98)
 
     args = parser.parse_args()
 
@@ -192,9 +248,9 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name="XRR" + f"_{args.test_year}" + f"_S{args.seed}",
+        name="PairRank" + f"_{args.test_year}" + f"_S{args.seed}",
         project=args.project + f"_{args.risk_metric}",
-        notes="Hans_Glove with Siamese loss",
+        notes="TinyBERT using CLS and Pairwise Ranking Loss",
         #mode="disabled",
     )
 
@@ -204,13 +260,16 @@ def main():
 
     wandb.config.update(args)
 
-    train_docs, train_labels = load_from_hdf5(f"../processed/{args.test_year}/{args.model_name_or_path}/train_preprocessed.h5")
-    test_docs, test_labels = load_from_hdf5(f"../processed/{args.test_year}/{args.model_name_or_path}/test_preprocessed.h5")
+    train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../../../processed/{args.test_year}/{args.model_name_or_path}/train_preprocessed.h5")
+    test_docs, test_attn_masks, test_labels = load_from_hdf5(f"../../../processed/{args.test_year}/{args.model_name_or_path}/test_preprocessed.h5")
 
-    train_dataset = DocClassificationDataset(train_docs, train_labels[:, risk_metric_map[args.risk_metric]])
-    test_dataset = DocClassificationDataset(test_docs, test_labels[:, risk_metric_map[args.risk_metric]])
+    train_dataset = DocClassificationDataset(train_docs, train_attn_masks, train_labels[:, risk_metric_map[args.risk_metric]])
+    test_dataset = DocClassificationDataset(test_docs, test_attn_masks, test_labels[:, risk_metric_map[args.risk_metric]])
+
+    # Define the sampler
+    train_sampler = StratifiedBatchSampler(train_dataset, batch_size=args.batch_size)
     
-    training_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, drop_last=True)
+    training_dataloader = DataLoader(train_dataset, batch_sampler=train_sampler, collate_fn=collate_fn)
     testing_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
 
     model = HierarchicalNet(args)
