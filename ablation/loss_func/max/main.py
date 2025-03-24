@@ -228,7 +228,7 @@ def main():
     # Others
     parser.add_argument("--model_save_path", type=str)
     parser.add_argument("--model_load_path", type=str)
-    parser.add_argument("--project", type=str, default="XRC")
+    parser.add_argument("--project", type=str, default="XRC_Ablation")
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
@@ -246,11 +246,16 @@ def main():
         torch.cuda.manual_seed_all(seed)
 
     wandb.init(
-        name="TinyBERTTRL" + f"_{args.test_year}" + f"_S{args.seed}",
+        name="MaxPool" + f"_{args.test_year}" + f"_S{args.seed}",
         project=args.project + f"_{args.risk_metric}",
-        notes="TinyBERT using CLS and mean pooling",
-        mode="disabled",
+        notes="TinyBERT using CLS and max pooling",
+        #mode="disabled",
     )
+
+    wandb.define_metric("val_f1_macro", summary="max")  # Track highest F1 Macro
+    wandb.define_metric("val_spearman_rho", summary="max")  # Track highest Spearman's rho
+    wandb.define_metric("val_kendall_tau", summary="max")   # Track highest Kendall's tau
+
     wandb.config.update(args)
 
     train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../../../processed/{args.test_year}/{args.model_name_or_path}/train_preprocessed.h5")
