@@ -192,7 +192,7 @@ class Trainer:
             if val_f1_macro > self.best_val_f1:
                 self.best_val_f1 = val_f1_macro
                 print(f"New best validation F1 Macro Score {self.best_val_f1}. Saving model and tokenizer.")
-                #torch.save(self.model.state_dict(), self.model_save_path)
+                torch.save(self.model.state_dict(), self.model_save_path)
 
 
     def evaluate(self):
@@ -237,8 +237,8 @@ def main():
     args.n_gpu = torch.cuda.device_count()
     args.device = device
     
-    args.model_save_path = f'./best_f1_{args.test_year}_{args.seed}.pth'
-    #args.model_load_path = f'./best_f1_{args.data_type}_{args.seed}.pth'
+    args.model_save_path = f'./checkpoints/{args.risk_metric}_{args.test_year}.pth'
+    #args.model_load_path = f'./checkpoints/{args.risk_metric}_{args.test_year}.pth'
     
     seed = args.seed
     torch.manual_seed(seed)
