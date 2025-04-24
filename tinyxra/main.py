@@ -4,6 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data.sampler import Sampler
 from transformers import get_linear_schedule_with_warmup
+from transformers import AutoTokenizer
 
 from tqdm.auto import tqdm
 import wandb
@@ -11,7 +12,7 @@ import random
 import argparse
 from model import HierarchicalNet
 from metric import metric
-from utils import collate_fn, load_from_hdf5, risk_metric_map, triplet_ranking_loss
+from utils import collate_fn, load_from_hdf5, triplet_ranking_loss, plot_all_top5_word_attention_heatmaps, generate_word_cloud, risk_metric_map
 
 class DocClassificationDataset(Dataset):
     def __init__(self, docs, attn_masks, labels):
@@ -84,6 +85,7 @@ class Trainer:
         self.val_dataset = val_dataset
         self.model_save_path = args.model_save_path
         self.best_val_f1 = 0
+        self.tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
         
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         component = ['encoder', 'classifier']
@@ -153,11 +155,14 @@ class Trainer:
         total_loss = 0
         all_preds = []
         all_targets = []
+        all_words_attns = []
+        all_sentence_attns = []
+        all_input_ids = []
 
         with torch.no_grad():
-            for batch in tqdm(dataloader, desc="Validation"):
+            for batch_idx, batch in tqdm(enumerate(dataloader), desc="Validation"):
                 with autocast():
-                    outputs, _, _, document_embs = self.model(
+                    outputs, word_attns, sentence_attns, document_embs = self.model(
                         batch['input_ids'].to(self.args.device), 
                         batch['attention_masks'].to(self.args.device)
                     )
@@ -167,8 +172,30 @@ class Trainer:
                 total_loss += loss.item()
                 all_preds.extend(outputs.cpu().numpy())
                 all_targets.extend(batch['targets'].cpu().numpy())
+                all_words_attns.extend(word_attns.reshape(batch['input_ids'].shape).cpu())
+                all_sentence_attns.extend(sentence_attns.cpu())
+                all_input_ids.extend(batch['input_ids'].cpu())
 
         acc, f1_macro, _, spearman_rho, kendall_tau = metric(all_preds, all_targets)
+
+        plot_all_top5_word_attention_heatmaps(input_ids=torch.stack(all_input_ids),
+                                              sent_attns=torch.stack(all_sentence_attns),
+                                              word_attns=torch.stack(all_words_attns),
+                                              tokenizer=self.tokenizer,
+                                              year=self.args.test_year,
+                                              risk_metric=self.args.risk_metric,
+                                              all_preds=all_preds,
+                                              all_targets=all_targets)
+        
+        generate_word_cloud(input_ids=torch.stack(all_input_ids),
+                            word_attns=torch.stack(all_words_attns),
+                            sent_attns=torch.stack(all_sentence_attns),
+                            tokenizer=self.tokenizer,
+                            year=self.args.test_year,
+                            risk_metric=self.args.risk_metric,
+                            all_preds=all_preds)
+        
+        
         avg_loss = total_loss / len(dataloader)
 
         return avg_loss, acc, f1_macro, spearman_rho, kendall_tau
@@ -213,7 +240,7 @@ def main():
     parser.add_argument("--test_year", default="2024", type=int)
     parser.add_argument("--risk_metric", choices=["std", "skew", "kurt", "sortino"], default="std", type=str)
     parser.add_argument("--model_name_or_path", default="huawei-noah/TinyBERT_General_4L_312D", type=str)
-    parser.add_argument("--gpu", default="cuda:7", type=str)
+    parser.add_argument("--gpu", default="cpu", type=str)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--epochs", default=30, type=int)
 
@@ -237,8 +264,8 @@ def main():
     args.n_gpu = torch.cuda.device_count()
     args.device = device
     
-    args.model_save_path = f'./checkpoints/{args.risk_metric}_{args.test_year}.pth'
-    #args.model_load_path = f'./checkpoints/{args.risk_metric}_{args.test_year}.pth'
+    #args.model_save_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
+    args.model_load_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
     
     seed = args.seed
     torch.manual_seed(seed)

@@ -13,6 +13,13 @@ processed
 processed.zip
 wandb
 __pycache__
+tinyxra/checkpoints/*
+tinyxra/explain_experiments/*
+tinyxra/attention_heatmaps/*
+tinyxra/comparison_heatmaps/*
+tinyxra/comparison_clouds/*
+tinyxra/explanation_ablation_imgs/*
+tinyxra/*.png
 
 hans_glove/glove_embeddings.npy
 hans_glove/glove.6B.300d.txt

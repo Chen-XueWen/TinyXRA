@@ -26,7 +26,7 @@ def metric(all_preds, all_targets):
     cm = confusion_matrix(true_labels, pred_labels)
     report = classification_report(true_labels, pred_labels, zero_division=1)
 
-    print(report)
+    #print(report)
 
     # Compute Spearman's Rho and Kendall's Tau using **continuous scores**
     spearman_rho, _ = spearmanr(pred_scores, true_labels)

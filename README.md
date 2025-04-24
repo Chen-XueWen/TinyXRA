@@ -15,6 +15,7 @@ pip install wandb==0.16.6
 pip install scipy==1.13.0
 pip install numpy==1.24.4
 pip install scikit-learn==1.6.1
+pip install seaborn==0.13.2
 ```
 ### Datasets Generation Requirements
 ```bash
