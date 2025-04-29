@@ -24,3 +24,4 @@ tinyxra/*.png
 hans_glove/glove_embeddings.npy
 hans_glove/glove.6B.300d.txt
 hans_glove/word2idx.json
+deprecated/tfidf_hans/glove_embeddings.npy

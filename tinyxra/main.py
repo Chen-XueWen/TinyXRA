@@ -101,14 +101,12 @@ class Trainer:
                 'lr': args.encoder_lr
             },
             {
-                'params': [p for n, p in self.model.named_parameters() if
-                           not any(nd in n for nd in no_decay) and component[1] in n],
+                'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay) and component[1] in n],
                 'weight_decay': args.weight_decay,
                 'lr': args.classifier_lr
             },
             {
-                'params': [p for n, p in self.model.named_parameters() if
-                           any(nd in n for nd in no_decay) and component[1] in n],
+                'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay) and component[1] in n],
                 'weight_decay': 0.0,
                 'lr': args.classifier_lr
             }
@@ -178,22 +176,22 @@ class Trainer:
 
         acc, f1_macro, _, spearman_rho, kendall_tau = metric(all_preds, all_targets)
 
-        plot_all_top5_word_attention_heatmaps(input_ids=torch.stack(all_input_ids),
-                                              sent_attns=torch.stack(all_sentence_attns),
-                                              word_attns=torch.stack(all_words_attns),
-                                              tokenizer=self.tokenizer,
-                                              year=self.args.test_year,
-                                              risk_metric=self.args.risk_metric,
-                                              all_preds=all_preds,
-                                              all_targets=all_targets)
+        #plot_all_top5_word_attention_heatmaps(input_ids=torch.stack(all_input_ids),
+        #                                      sent_attns=torch.stack(all_sentence_attns),
+        #                                      word_attns=torch.stack(all_words_attns),
+        #                                      tokenizer=self.tokenizer,
+        #                                      year=self.args.test_year,
+        #                                      risk_metric=self.args.risk_metric,
+        #                                      all_preds=all_preds,
+        #                                      all_targets=all_targets)
         
-        generate_word_cloud(input_ids=torch.stack(all_input_ids),
-                            word_attns=torch.stack(all_words_attns),
-                            sent_attns=torch.stack(all_sentence_attns),
-                            tokenizer=self.tokenizer,
-                            year=self.args.test_year,
-                            risk_metric=self.args.risk_metric,
-                            all_preds=all_preds)
+        #generate_word_cloud(input_ids=torch.stack(all_input_ids),
+        #                    word_attns=torch.stack(all_words_attns),
+        #                    sent_attns=torch.stack(all_sentence_attns),
+        #                    tokenizer=self.tokenizer,
+        #                    year=self.args.test_year,
+        #                    risk_metric=self.args.risk_metric,
+        #                    all_preds=all_preds)
         
         
         avg_loss = total_loss / len(dataloader)
@@ -219,7 +217,7 @@ class Trainer:
             if val_f1_macro > self.best_val_f1:
                 self.best_val_f1 = val_f1_macro
                 print(f"New best validation F1 Macro Score {self.best_val_f1}. Saving model and tokenizer.")
-                torch.save(self.model.state_dict(), self.model_save_path)
+                #torch.save(self.model.state_dict(), self.model_save_path)
 
 
     def evaluate(self):
@@ -264,8 +262,8 @@ def main():
     args.n_gpu = torch.cuda.device_count()
     args.device = device
     
-    #args.model_save_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
-    args.model_load_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
+    args.model_save_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
+    #args.model_load_path = f'./checkpoints/{args.seed}/{args.risk_metric}_{args.test_year}.pth'
     
     seed = args.seed
     torch.manual_seed(seed)
@@ -276,7 +274,7 @@ def main():
         name="TinyBERTTRL" + f"_{args.test_year}" + f"_S{args.seed}",
         project=args.project + f"_{args.risk_metric}",
         notes="TinyBERT using CLS and Triplet Ranking Loss",
-        mode="disabled",
+        # mode="disabled",
     )
     wandb.config.update(args)
 

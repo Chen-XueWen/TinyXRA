@@ -174,7 +174,7 @@ def main():
     # Others
     parser.add_argument("--model_save_path", type=str)
     parser.add_argument("--model_load_path", type=str)
-    parser.add_argument("--project", type=str, default="XRC_Ablation")
+    parser.add_argument("--project", type=str, default="XRC")
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
@@ -195,7 +195,7 @@ def main():
         name="XRR" + f"_{args.test_year}" + f"_S{args.seed}",
         project=args.project + f"_{args.risk_metric}",
         notes="Hans_Glove with Siamese loss",
-        #mode="disabled",
+        mode="disabled",
     )
 
     wandb.define_metric("val_f1_macro", summary="max")  # Track highest F1 Macro
