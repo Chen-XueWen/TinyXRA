@@ -1,0 +1,5 @@
+Processing for Test Year 2023, Risk kurt, Seed 21
+F1 Macro, Spearman Rho, Kendall_Tau
+0.23912303172500557
+-0.023364295332462506
+-0.018009428127966225

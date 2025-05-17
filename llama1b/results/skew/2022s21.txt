@@ -1,0 +1,15 @@
+Processing for Test Year 2022, Risk skew, Seed 21
+              precision    recall  f1-score   support
+
+           0       0.25      0.15      0.19      1283
+           1       0.40      0.05      0.09      1711
+           2       0.28      0.72      0.40      1283
+
+    accuracy                           0.28      4277
+   macro avg       0.31      0.31      0.22      4277
+weighted avg       0.32      0.28      0.21      4277
+
+F1 Macro, Spearman Rho, Kendall_Tau
+0.22471634671172938
+-0.06182810715629917
+-0.04747851189794335

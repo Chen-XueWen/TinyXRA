@@ -1,0 +1,5 @@
+Processing for Test Year 2023, Risk std, Seed 21
+F1 Macro, Spearman Rho, Kendall_Tau
+0.21842809220671477
+-0.10990355733221445
+-0.08449925658846622

@@ -1,0 +1,5 @@
+Processing for Test Year 2023, Risk sortino, Seed 21
+F1 Macro, Spearman Rho, Kendall_Tau
+0.22580143992714885
+-0.09195378101689607
+-0.07106247092641445

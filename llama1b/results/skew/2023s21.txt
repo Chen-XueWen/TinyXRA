@@ -1,0 +1,5 @@
+Processing for Test Year 2023, Risk skew, Seed 21
+F1 Macro, Spearman Rho, Kendall_Tau
+0.23857567747565347
+-0.044861748289532245
+-0.03477232681564636

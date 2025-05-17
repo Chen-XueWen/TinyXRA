@@ -1,0 +1,15 @@
+Processing for Test Year 2019, Risk sortino, Seed 21
+              precision    recall  f1-score   support
+
+           0       0.21      0.11      0.14       970
+           1       0.36      0.04      0.07      1294
+           2       0.29      0.77      0.42       970
+
+    accuracy                           0.28      3234
+   macro avg       0.29      0.30      0.21      3234
+weighted avg       0.29      0.28      0.19      3234
+
+F1 Macro, Spearman Rho, Kendall_Tau
+0.20885833964544057
+-0.08068118250542886
+-0.06190805269439892

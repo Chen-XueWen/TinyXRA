@@ -276,6 +276,11 @@ def main():
         notes="TinyBERT using CLS and Triplet Ranking Loss",
         # mode="disabled",
     )
+
+    wandb.define_metric("val_f1_macro", summary="max")  # Track highest F1 Macro
+    wandb.define_metric("val_spearman_rho", summary="max")  # Track highest Spearman's rho
+    wandb.define_metric("val_kendall_tau", summary="max")   # Track highest Kendall's tau
+
     wandb.config.update(args)
 
     train_docs, train_attn_masks, train_labels = load_from_hdf5(f"../processed/{args.test_year}/{args.model_name_or_path}/train_preprocessed.h5")

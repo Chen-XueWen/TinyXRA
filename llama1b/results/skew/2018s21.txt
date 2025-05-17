@@ -1,0 +1,15 @@
+Processing for Test Year 2018, Risk skew, Seed 21
+              precision    recall  f1-score   support
+
+           0       0.21      0.10      0.14       921
+           1       0.43      0.04      0.08      1228
+           2       0.28      0.76      0.41       921
+
+    accuracy                           0.28      3070
+   macro avg       0.31      0.30      0.21      3070
+weighted avg       0.32      0.28      0.20      3070
+
+F1 Macro, Spearman Rho, Kendall_Tau
+0.2089027674889968
+-0.10697558275290853
+-0.08242495908652031

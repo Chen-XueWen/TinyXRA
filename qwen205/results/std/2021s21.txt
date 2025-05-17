@@ -1,0 +1,16 @@
+Processing for Test Year 2021, Risk std, Seed 21
+[2025-05-03 06:59:00,431] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+              precision    recall  f1-score   support
+
+           0       0.36      0.05      0.09      1169
+           1       0.39      0.79      0.52      1557
+           2       0.20      0.09      0.13      1169
+
+    accuracy                           0.36      3895
+   macro avg       0.32      0.31      0.25      3895
+weighted avg       0.32      0.36      0.27      3895
+
+F1 Macro, Spearman Rho, Kendall_Tau
+0.24517087269341017
+-0.027417796431992214
+-0.02142137104750563
