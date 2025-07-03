@@ -26,12 +26,10 @@ pip install seaborn==0.13.2
 ```
 ### Datasets Generation Requirements
 
-### NOTE: We have provided the processed datasets under the folder labelled as json. Feel free to skip to "To run model"
-Please download the datasets at the following link: 
-
-https://drive.google.com/file/d/1lr2tEqk9nsArW5Scg53uRsQk-x-YRjgS/view?usp=sharing
-
-and place it directly at "tinyxra_code/datasets"
+> #### NOTE: We have provided the processed datasets under the folder labelled as json. Feel free to skip to "To run model"
+> Please download the datasets at the following link: 
+> https://drive.google.com/file/d/1lr2tEqk9nsArW5Scg53uRsQk-x-YRjgS/view?usp=sharing
+> and place it directly at "tinyxra_code/datasets"
 
 ```bash
 pip install requests==2.31.0
