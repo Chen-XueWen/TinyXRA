@@ -1,13 +1,13 @@
 # FINBERT-XRC Enhanced
 
 ## Requirements (Tested on the Version below)
-Please create it under the environment named finbertxrc.
+Please create it under the environment named tinyxra.
 ```bash
-conda create -n "finbertxrc" python=3.11.3
-conda activate finbertxrc
+conda create -n "tinyxra" python=3.11.3
+conda activate tinyxra
 ```
 Install the following dependencies and make adjustments based on your system:
-### FinBERT-XRC Requirements
+### Tinyxra Requirements
 ```bash
 conda install pytorch==2.2.2 torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
 pip install transformers==4.39.3
