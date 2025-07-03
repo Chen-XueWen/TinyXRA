@@ -8,6 +8,8 @@ This repository contains the dataset, code, and evaluation scripts for:
 
 📄 Paper: [Read it on arXiv](https://arxiv.org/abs/2506.23767)
 
+This paper is an extension to the [Explainable Risk Classification in Financial Reports](https://arxiv.org/abs/2405.01881) published in [ICIS2023](https://aisel.aisnet.org/icis2023/blockchain/blockchain/3/).
+
 ## Requirements (Tested on the Version below)
 Please create it under the environment named tinyxra.
 ```bash
