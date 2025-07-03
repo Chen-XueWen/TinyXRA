@@ -85,3 +85,18 @@ Model can only fit 350 sentences and 40 words which is approximately the 80th pe
 
 *MD&A Crawler from Edgar-Crawler:
 https://github.com/lefterisloukas/edgar-crawler
+
+# Citation
+
+If you use this work, please use the following citation:
+
+```bibtex
+@misc{tan2025explainableaicomprehensiverisk,
+      title={Explainable AI for Comprehensive Risk Assessment for Financial Reports: A Lightweight Hierarchical Transformer Network Approach}, 
+      author={Xue Wen Tan and Stanley Kok},
+      year={2025},
+      eprint={2506.23767},
+      archivePrefix={arXiv},
+      primaryClass={q-fin.RM},
+      url={https://arxiv.org/abs/2506.23767}, 
+}
