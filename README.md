@@ -1,4 +1,11 @@
-# FINBERT-XRC Enhanced
+# Explainable AI for Comprehensive Risk Assessment for Financial Reports: A Lightweight Hierarchical Transformer Network Approach
+
+This repository contains the dataset, code, and evaluation scripts for:
+
+> Explainable AI for Comprehensive Risk Assessment for Financial Reports: A Lightweight Hierarchical Transformer Network Approach
+> Xue Wen Tan, Stanley Kok
+
+📄 Paper: [Read it on arXiv](https://arxiv.org/abs/2506.23767)
 
 ## Requirements (Tested on the Version below)
 Please create it under the environment named tinyxra.
