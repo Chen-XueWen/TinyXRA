@@ -80,7 +80,8 @@ def calculate_volatility(ticker, filing_date, ff_factors):
     std_risk_value = calculate_standard_deviation(model.resid)
     skewness_risk_value = calculate_skewness(model.resid)
     kurtosis_risk_value = calculate_kurtosis(model.resid)
-    sortino_risk_value = sortino_ratio(model.resid)
+    alpha = model.params['const']  # Get the intercept (Jensen's Alpha)
+    sortino_risk_value = sortino_ratio(avg_abnormal_return=alpha, daily_residuals=model.resid)
 
     return (std_risk_value, skewness_risk_value, kurtosis_risk_value, sortino_risk_value)
 
