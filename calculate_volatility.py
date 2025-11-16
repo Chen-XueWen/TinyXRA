@@ -123,7 +123,7 @@ def process_year(year):
                 'Std_value': volatility[0],
                 'Skewness_value': volatility[1],
                 'Kurtosis_value': volatility[2],
-                'Sortino_value': volatility[3] * 1e15 # Daily sortino value is too small, so multiply by 1e15 so that to_json will not round to 0.
+                'Sortino_value': volatility[3]
             })
     
     # Save results
