@@ -24,22 +24,28 @@ def downside_deviation(returns, mar=0.0):
     downside_dev = np.sqrt(mean_squared_diff)
     return downside_dev
 
-def sortino_ratio(returns, mar=0.0, rf=0.0):
+def sortino_ratio(avg_abnormal_return, daily_residuals, mar=0.0):
     """
-    Calculate the Sortino Ratio of returns.
+    Calculate the Sortino Ratio for abnormal returns.
     
     Parameters:
-    - returns: A pandas Series or NumPy array of returns.
-    - mar: Minimum Acceptable Return (default is 0.0).
-    - rf: Risk-free rate (default is 0.0). # We have adjusted as Excess returns, so we can take it as 0.0
+    - avg_abnormal_return: The average abnormal return (e.g., Jensen's Alpha).
+    - daily_residuals: A pandas Series or NumPy array of daily abnormal returns (residuals).
+    - mar: Minimum Acceptable Return for the abnormal return (default is 0.0).
     
     Returns:
     - Sortino Ratio.
     """
-    # Calculate the average return above the risk-free rate
-    excess_return = np.mean(returns) - rf
-    # Calculate the downside deviation
-    downside_dev = downside_deviation(returns, mar)
+    # The "return" is the average abnormal return
+    excess_return = avg_abnormal_return - mar
+    
+    # The "risk" is the downside deviation of the daily residuals
+    downside_dev = downside_deviation(daily_residuals, mar)
+    
+    # Handle division by zero if there's no downside deviation
+    if downside_dev == 0:
+        return np.nan
+        
     # Compute the Sortino Ratio
     sortino = excess_return / downside_dev
     return sortino
